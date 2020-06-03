@@ -13,8 +13,8 @@ const userAgent string = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/
 const followingDisableMessage = "FWu7C6rYNN"
 const redirectOutMessage = "cmUgG6rlRN"
 
-var maxBodySize = int64(1 << 19)
-var readTimeout = 20 * time.Second
+const defaultMaxBodySize = int64(1 << 19)
+const defaultReadTimeout = 20 * time.Second
 
 type Response struct {
 	StatusCode int
@@ -42,11 +42,11 @@ type Client struct {
 
 func (c *Client) preReq() {
 
-	if c.ReadTimeout != 0 {
-		readTimeout = c.ReadTimeout
+	if c.ReadTimeout == 0 {
+		c.ReadTimeout = defaultReadTimeout
 	}
-	if c.MaxBodySize != 0 {
-		maxBodySize = c.MaxBodySize
+	if c.MaxBodySize == 0 {
+		c.MaxBodySize = defaultMaxBodySize
 	}
 
 	c.middleware = &middleware{
@@ -55,6 +55,7 @@ func (c *Client) preReq() {
 		analyzer:  false,
 		maxRetry:  c.Retry,
 		readTimeout: c.ReadTimeout,
+		maxBodySize: c.MaxBodySize,
 	}
 
 	c.middleware.redirects = &redirects{Count: 0, Urls: nil, StatusCodes: nil}
@@ -90,7 +91,7 @@ func (c *Client) req(req *http.Request) Response {
 	var readDone = make(chan int)
 
 	go func() {
-		body, _ = ioutil.ReadAll(io.LimitReader(resp.Body, maxBodySize))
+		body, _ = ioutil.ReadAll(io.LimitReader(resp.Body, c.MaxBodySize))
 		readDone <- 1
 	}()
 

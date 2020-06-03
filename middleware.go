@@ -25,6 +25,7 @@ type middleware struct {
 	analyzer  bool
 	maxRetry  int
 	readTimeout time.Duration
+	maxBodySize int64
 }
 
 func (m middleware) appendRedirect(url string, statuscode int, size int) {
@@ -109,12 +110,12 @@ func (m middleware) RoundTrip(req *http.Request) (resp *http.Response, err error
 		var body []byte
 		readDone := make(chan int)
 		go func() {
-			body, _ = ioutil.ReadAll(io.LimitReader(resp.Body, maxBodySize))
+			body, _ = ioutil.ReadAll(io.LimitReader(resp.Body, m.maxBodySize))
 			readDone <- 1
 		}()
 
 		select {
-		case <-time.After(readTimeout):
+		case <-time.After(m.readTimeout):
 			//deadline
 		case <-readDone:
 		}
