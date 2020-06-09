@@ -25,6 +25,7 @@ type Response struct {
 	Cookies    []*http.Cookie
 	Success    bool
 	Path       string
+	CommonName string
 }
 
 type Client struct {
@@ -86,7 +87,9 @@ func (c *Client) req(req *http.Request) Response {
 	r.Headers = resp.Header
 	r.Cookies = resp.Cookies()
 	r.Path = resp.Request.URL.Path
-
+	if resp.TLS != nil {
+		r.CommonName = resp.TLS.PeerCertificates[0].Subject.CommonName
+	}
 	var body []byte
 	var readDone = make(chan int)
 
